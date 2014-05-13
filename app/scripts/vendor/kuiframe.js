@@ -11,6 +11,7 @@ $.fn.kuiframe = function(options) {
   };
   
   _t.o = $.extend({}, defaults, options);
+  _t.successEvent = false;
    
   _t.update = function(optionsNew) {
     _t.o = $.extend({}, _t.o, optionsNew);
@@ -30,10 +31,6 @@ $.fn.kuiframe = function(options) {
       enctype: _t.attr('enctype') || _t.o.enctype
     });
     
-    iFrame.one("load", function() {
-      
-    })
-    
     if (typeof(_t.o.data) != "undefined") {
       $.each(_t.o.data, function(name, value){
         _t.find("[name=" + name + "]").remove();
@@ -43,20 +40,22 @@ $.fn.kuiframe = function(options) {
           type: "hidden"
         }).appendTo(_t);
       });
-    }    
-  };
-  
-  _t.update(_t.o);
-  
-  // Listener postMessages form iframe
-  var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
-  var eventer = window[eventMethod];
-  var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
-  eventer(messageEvent,function(e) {
-    if ((e.origin == _t.o.domain) && (typeof(_t.o.success) == "function")) {
-      _t.o.success(JSON.parse(e.data));
     }
-  }, false);
-  
+    // Listener postMessages form iframe
+    if ((typeof(_t.o.success) == "function") && (_t.successEvent == false)) {
+      _t.successEvent = true;
+      var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+      var eventer = window[eventMethod];
+      var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+      eventer(messageEvent, function(e) {
+        if (e.origin == _t.o.domain) {
+          _t.o.success(JSON.parse(e.data));
+          _t.successEvent = false;
+          this.removeEventListener(messageEvent, arguments.callee, false);
+        }
+      }, false);
+    }
+  };
+  _t.update(_t.o); 
   return _t;
 }
